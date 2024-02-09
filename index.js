@@ -16,7 +16,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8081;
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
@@ -24,14 +24,15 @@ server.listen(PORT, () => {
 
 const connectedUsers = new Set();
 const connetedPairs=new Set();
+// const connectedPairs = {};
 
 io.on("connection", (socket) => {
-  console.log(" A user connected")
+  console.log(" A user connected",socket.id)
 
   connectedUsers.add(socket.id)
 
-  // Handle disconnection
 
+  // Handle disconnection
   socket.on('disconnect', () => {
     console.log('User disconnected');
 
@@ -47,26 +48,29 @@ io.on("connection", (socket) => {
 
   });
 
-
   //find random connection
-
   socket.on("findRandomConnection", () => {
+    // Added my id inti set
+    connetedPairs.add(socket.id)
     console.log(`user ${socket.id} is searching for available users`)
     const availableUsers = Array.from(connectedUsers).filter((id) => id !== socket.id)
 
-    if (availableUsers.length > 0) {
-      const randomUser = availableUsers[Math.floor(Math.random() * availableUsers.length)];
-      io.to(randomUser).emit('randomConnection', { partnerId: socket.id });
-      socket.emit('randomConnection', { partnerId: randomUser })
-
-      console.log(`User ${socket.id} is connected with ${randomUser}`);
+    if (availableUsers.length > 0 ) {
+    const randomUser = availableUsers[Math.floor(Math.random() * availableUsers.length)];
+    
+    if(connetedPairs.size <=2) {
+    io.to(randomUser).emit('randomConnection', { partnerId: socket.id });
+    connetedPairs.add(randomUser)
+    socket.emit('randomConnection', { partnerId: randomUser })
+    console.log(`User ${socket.id} is connected with ${randomUser}`);
+    } else {
+      console.log("Two already connected");
+    }
     }
     else {
       socket.emit('noRandomConnection')
     }
-
   })
-
   // handle chat message 
 
   socket.on('chatMessage',(data)=>{
